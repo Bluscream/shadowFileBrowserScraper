@@ -61,7 +61,7 @@ class Scraper():
         # if not self.get_session_id(): raise AttributeError("Not logged in!")
         url = self.base_url / endpoint
         # print("NEW POST REQUEST to", url)
-        # print("\tData:", dumps(data))
+        print(endpoint+":", dumps(data["dir"]))
 
         # print("\tHeaders:", dumps(self.session.headers))
 
@@ -70,6 +70,7 @@ class Scraper():
         # print(f"\t\tType: {response.content_type} ({response.content_length}B)")
         # print("\t\tCookies:", dumps(response.cookies))
         # print("\t\tHeaders:", response.headers)
+        await asyncio.sleep(.5)
         # async with self.session as session:
         async with self.get_session(config.session_id) as session:
             async with session.post(url, data=data, headers=self.headers) as response:

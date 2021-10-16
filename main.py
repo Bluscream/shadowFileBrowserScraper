@@ -11,10 +11,11 @@ async def main():
     # scraper.download()
     folder = Folder(scraper, PurePosixPath("/var/log/filebrowser/userdisks"
                                            "/25ee0b378593bccc8523a69d90a24b2c647ba7c4b3c768f63ff1070872938188"
-                                           "/ProgramData/Adguard/"))
-    i = 0
-    await folder.update_folder_contents(recursive=True, iteration=i)
-    folder.tree()
+                                           "/ProgramData/"))
+    await folder.update_folder_contents(recursive=True)
+    for f in folder.folders:
+        f.get_download_url()
+    # folder.tree()
     # folders = await scraper.post("dirlist", {"dir": scraper.get_path("")})
 
     # await scraper.session.close()

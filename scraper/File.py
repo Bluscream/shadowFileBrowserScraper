@@ -5,7 +5,7 @@ from copy import copy
 from dataclasses import dataclass
 from pathlib import PurePosixPath, Path
 from typing import List
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlencode, quote
 from bs4 import BeautifulSoup
 from yarl import URL
 from os import makedirs, path
@@ -26,7 +26,7 @@ class File:
     def __str__(self):
         return f"File: \"{self.fullpath}\""
 
-    def encoded_path(self) -> str: return quote_plus(str(self.fullpath))
+    def encoded_path(self) -> str: return quote(str(self.fullpath))
 
     def relative_path(self) -> PurePosixPath:
         return PurePosixPath(str(self.fullpath).replace(self.scraper.get_base_path(), ""))
@@ -36,10 +36,9 @@ class File:
 
     async def create(self) -> None:
         local_path = self.local_path()
-        print(self.fullpath.parent)
-        if not path.exists(self.fullpath.parent):
+        if not path.exists(local_path.parent):
             print("not exists")
-            os.makedirs(self.fullpath.parent)
+            os.makedirs(local_path.parent)
         if not local_path.exists():
             os.open(local_path, flags=os.O_CREAT)
 
@@ -55,10 +54,8 @@ class Folder(File):
         self.folders = []
         self.files = []
 
-    async def update_folder_contents(self, endpoint: str = "dirlist", recursive: bool = False,
-                                     iteration: int = 0) -> None:
-        iteration += 1
-        print(f"#{iteration} folder.get_folder_contents(\"{self.fullpath}\")")
+    async def update_folder_contents(self, endpoint: str = "dirlist", recursive: bool = False) -> None:
+        # print(f"folder.get_folder_contents(\"{self.fullpath}\")")
         response = None
         try:
             response = await self.scraper.post(endpoint, {"dir": str(self.fullpath)})
@@ -67,7 +64,7 @@ class Folder(File):
         xml = copy(response)
         if xml is None: return
         html = BeautifulSoup(xml, 'html.parser')
-        print(html)
+        print("\tXML:",html)
 
         self.folders.clear()
         self.files.clear()
@@ -77,12 +74,13 @@ class Folder(File):
             if elem.get("class")[0] == 'directory':
                 dir = Folder(self.scraper, elempath)
                 dir.create()
-                if recursive: await dir.update_folder_contents(recursive=True, iteration=iteration)
+                if recursive: await dir.update_folder_contents(recursive=True)
                 self.folders.append(dir)
             elif elem.get("class")[0] == 'file':
                 file = File(self.scraper, elempath)
                 await file.create()
                 self.files.append(file)
+        print("\t",self)
 
     def __contains__(self, fullpath) -> bool:
         for folder in self.folders:
@@ -104,8 +102,8 @@ class Folder(File):
 
     def get_download_url(self) -> URL:
         url = self.scraper.base_url / "zip"
-        url.query.add("dir", self.fullpath)
-        print(url)
+        url = url.update_query({'dir': self.encoded_path()}) # .replace("%252F", "%2F")
+        print("Download URL:",url)
         return url
 
     def create(self) -> None:
