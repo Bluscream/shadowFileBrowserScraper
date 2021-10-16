@@ -81,11 +81,16 @@ class Scraper():
         print("NEW POST REQUEST to", url)
         print("\tData:", dumps(data))
         print("\tHeaders:", dumps(self.headers))
-        async with self.session.post(url, data=data) as response: # , headers=self.headers
+        async with self.session.post(url, data=data, read_until_eof=False, allow_redirects=False) as response: # , headers=self.headers
             try:
-                print(f"\t{response.content_type} ({response.content_length}B) {response.method}", "RESPONSE from", response.url)
-                print("Cookies:", dumps(response.cookies))
-                print("Headers:", response.headers)
+                print(f"\t{response.method} ({response.status} {response.reason})", "RESPONSE from", response.url)
+                print(f"\t\tType: {response.content_type} ({response.content_length}B)")
+                print("\t\tCookies:", dumps(response.cookies))
+                print("\t\tHeaders:", response.headers)
+                print("\t\tOK:", response.ok)
+                print("\t\tClosed:", response.closed)
+                print("\t\tCharset:", response.charset)
+                print("\t\tconnection:", response.connection)
                 return response
             except ClientConnectionError as ex:
                 # something went wrong with the exception, decide on what to do next
