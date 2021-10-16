@@ -1,4 +1,8 @@
 import datetime
+from json import dumps
+
+import aiohttp
+
 import config
 from scraper import Scraper
 import asyncio
@@ -11,9 +15,16 @@ async def main():
     await scraper.scrape_disk(config.disk_id)
     print("Disk ID:", scraper.disk_id)
     # scraper.download(eval('f' + repr(config.save_path)))
-    folders = await scraper.get_folder_contents("/")
-    for folder in folders:
-        print(str(folder))
+    folder = await scraper.get_folder_contents("/")
+    # for file in folder.files:
+        # print(file.path.name)
+    for folder in folder.folders:
+        print(folder.path.name)
+    print("test:", dumps(folder))
+    # folders = await scraper.post("dirlist", {"dir": scraper.get_path("")})
+
+
+
 
     # await scraper.session.close()
 

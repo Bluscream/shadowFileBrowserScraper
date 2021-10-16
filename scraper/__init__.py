@@ -1,35 +1,16 @@
+import asyncio
 import dataclasses
-from pathlib import Path
+from pathlib import Path, PosixPath
 from dataclasses import dataclass
 from typing import List
 from json import dumps
 
+from bs4 import BeautifulSoup
 from yarl import URL
 from urllib.parse import urlencode, quote_plus
 from aiohttp import ClientSession, ClientConnectionError, ClientError
 import os.path
-
-
-class File:
-    path = ""
-    name = ""
-    def __init__(self, path):
-        self.path = path
-        self.name = path.split("/")[-1]
-
-class Folder:
-    path = ""
-    encoded_path = ""
-    name = ""
-    folders: List = []
-    files: List[File] = []
-    def __init__(self, path):
-        self.path = path
-        self.encoded_path = quote_plus(path)
-        self.name = path.split("/")[-1]
-
-    def get_content(self):
-        pass
+from scraper.File import File, Folder
 
 class Scraper():
     email = ""
@@ -80,25 +61,18 @@ class Scraper():
         url = self.base_url / endpoint
         print("NEW POST REQUEST to", url)
         print("\tData:", dumps(data))
-        print("\tHeaders:", dumps(self.headers))
-        async with self.session.post(url, data=data, read_until_eof=False, allow_redirects=False) as response: # , headers=self.headers
-            try:
-                print(f"\t{response.method} ({response.status} {response.reason})", "RESPONSE from", response.url)
-                print(f"\t\tType: {response.content_type} ({response.content_length}B)")
-                print("\t\tCookies:", dumps(response.cookies))
-                print("\t\tHeaders:", response.headers)
-                print("\t\tOK:", response.ok)
-                print("\t\tClosed:", response.closed)
-                print("\t\tCharset:", response.charset)
-                print("\t\tconnection:", response.connection)
-                return response
-            except ClientConnectionError as ex:
-                # something went wrong with the exception, decide on what to do next
-                print("ClientConnectionError:", str(ex))
-            except ClientError as ex:
-                # something went wrong in general. Not a connection error, that was handled
-                # above.
-                print("ClientError:", str(ex))
+
+        # print("\tHeaders:", dumps(self.session.headers))
+
+        async with self.session as session:
+            async with session.post(url, data=data) as response:
+                # if response.status != 200: await asyncio.sleep(99999)
+                # print(f"\t{response.method} ({response.status} {response.reason})", "RESPONSE from", response.url)
+                # print(f"\t\tType: {response.content_type} ({response.content_length}B)")
+                # print("\t\tCookies:", dumps(response.cookies))
+                # print("\t\tHeaders:", response.headers)
+                html = await response.text()
+                return [response, html]
 
     async def login(self, email, password):
         self.email = email
@@ -113,34 +87,28 @@ class Scraper():
 
     async def get_folder_contents(self, path):
         _path = self.get_path(path)
-        print(f"get_files({_path}")
-        folder = Folder(_path)
-        # folder.files = await self._get_files(folder.)
-        folder.folders = await self._get_folders(folder.encoded_path)
+        print(f"get_files({_path})")
+        folder = Folder(PosixPath(_path))
+        # folder.files = await self._get_files(folder.path)
+        await self._get_folders(folder.path, folder)
         return folder
 
     async def _get_files(self, path):
-        async with await self.post("filelist", {"dir": path}) as response:
-            print("Content-type:", response.headers['content-type'])
-            html = await response.text()
-            print("Body:", html[:15], "...")
-            return [html]
+        return self._get_folders(path, files=True)
 
-    async def _get_folders(self, path):
-        response = await self.post("dirlist", {"dir": path})
-        print("Content-type:", response.headers['content-type'])
-        print("test")
-        try:
-            html = await response.content.read(1)
-            print("test2")
-            return [html]
-        except ClientConnectionError as ex:
-            # something went wrong with the exception, decide on what to do next
-            print("ClientConnectionError:", str(ex))
-        except ClientError as ex:
-            # something went wrong in general. Not a connection error, that was handled
-            # above.
-            print("ClientError:", str(ex))
+    async def _get_folders(self, path, folder: Folder = None, files: bool = False):
+        if not folder: folder = Folder(path)
+        folder.path = Path(path)
+        response = await self.post("filelist" if files else "dirlist", {"dir": path})
+        xml = response[1]
+        html = BeautifulSoup(xml, 'html.parser')
+        print(html)
+
+        for elem in html.find_all('li'):
+            if elem.get("class")[0] == 'directory': folder.folders.append(Folder(folder.path / elem.a.text))
+            elif elem.get("class")[0] == 'file': folder.files.append(File(folder.path / elem.a.text))
+        print("lol")
+        return folder
 
 
     async def scrape_disk(self, disk_id):
