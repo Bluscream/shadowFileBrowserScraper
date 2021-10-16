@@ -1,6 +1,7 @@
+from __future__ import annotations
 import asyncio
 import dataclasses
-from pathlib import Path, PosixPath
+from pathlib import Path, PosixPath, PurePosixPath
 from dataclasses import dataclass
 from typing import List
 from json import dumps
@@ -10,12 +11,12 @@ from yarl import URL
 from urllib.parse import urlencode, quote_plus
 from aiohttp import ClientSession, ClientConnectionError, ClientError
 import os.path
+
+import config
 from scraper.File import File, Folder
 
+
 class Scraper():
-    email = ""
-    password = ""
-    disk_id = ""
 
     session: ClientSession
     base_url = URL("https://filebrowser.ams1.shadow.tech:2447/shadowftp/")
@@ -41,79 +42,47 @@ class Scraper():
         "is-user-exist": "false",
         "is-user": "true",
         "s_sq": "bladeshadowtechprod%3D%2526c.%2526a.%2526activitymap.%2526page%253Dhttps%25253A%25252F%25252Faccount.shadow.tech%25252Fhome%25252Fapplications%2526link%253DShadow%252520Anwendungen%2526region%253Droot%2526.activitymap%2526.a%2526.c",
-        "beaker.session.id": ""
     }
 
-    def get_session_id(self):
+    def get_session_id(self) -> str:
         for key, cookie in self.session.cookie_jar.filter_cookies('/').items():
             if key == "beaker.session.id": return cookie.value
 
-    def __init__(self, session_id=""):
-        if session_id:
-            self.cookies["beaker.session.id"] = session_id
-            self.session = ClientSession(cookies=self.cookies)
-            print("Session:", self.get_session_id())
-        else:
-            self.session = ClientSession()
+    def __init__(self, session_id="") -> None:
+        # config.save_path = eval('f' + repr(config.save_path))
+        self.session = self.get_session(session_id)
+        os.makedirs(config.save_path, exist_ok=True)
 
-    async def post(self, endpoint, data):
-        if not self.get_session_id(): raise AttributeError("Not logged in!")
+    def get_session(self, session_id="") -> ClientSession:
+        if session_id: return ClientSession(cookies={"beaker.session.id": session_id})
+        return ClientSession()
+
+    async def post(self, endpoint, data) -> str:
+        # if not self.get_session_id(): raise AttributeError("Not logged in!")
         url = self.base_url / endpoint
-        print("NEW POST REQUEST to", url)
-        print("\tData:", dumps(data))
+        # print("NEW POST REQUEST to", url)
+        # print("\tData:", dumps(data))
 
         # print("\tHeaders:", dumps(self.session.headers))
 
-        async with self.session as session:
-            async with session.post(url, data=data) as response:
-                # if response.status != 200: await asyncio.sleep(99999)
-                # print(f"\t{response.method} ({response.status} {response.reason})", "RESPONSE from", response.url)
-                # print(f"\t\tType: {response.content_type} ({response.content_length}B)")
-                # print("\t\tCookies:", dumps(response.cookies))
-                # print("\t\tHeaders:", response.headers)
-                html = await response.text()
-                return [response, html]
+        # if response.status != 200: await asyncio.sleep(99999)
+        # print(f"\t{response.method} ({response.status} {response.reason})", "RESPONSE from", response.url)
+        # print(f"\t\tType: {response.content_type} ({response.content_length}B)")
+        # print("\t\tCookies:", dumps(response.cookies))
+        # print("\t\tHeaders:", response.headers)
+        # async with self.session as session:
+        async with self.get_session(config.session_id) as session:
+            async with session.post(url, data=data, headers=self.headers) as response:
+                return await response.text()
 
     async def login(self, email, password):
-        self.email = email
-        self.password = password
         async with await self.post("auth", {"username": email, "password": password}) as response:
             print("Content-type:", response.headers['content-type'])
             html = await response.text()
             print("Body:", html[:15], "...")
 
-    def get_path(self, path):
-        return f"{self.base_path}/{self.disk_id}/{path}".replace("//", "/")
+    def get_base_path(self) -> str:
+        return f"{self.base_path}{config.disk_id}"
 
-    async def get_folder_contents(self, path):
-        _path = self.get_path(path)
-        print(f"get_files({_path})")
-        folder = Folder(PosixPath(_path))
-        # folder.files = await self._get_files(folder.path)
-        await self._get_folders(folder.path, folder)
-        return folder
-
-    async def _get_files(self, path):
-        return self._get_folders(path, files=True)
-
-    async def _get_folders(self, path, folder: Folder = None, files: bool = False):
-        if not folder: folder = Folder(path)
-        folder.path = Path(path)
-        response = await self.post("filelist" if files else "dirlist", {"dir": path})
-        xml = response[1]
-        html = BeautifulSoup(xml, 'html.parser')
-        print(html)
-
-        for elem in html.find_all('li'):
-            if elem.get("class")[0] == 'directory': folder.folders.append(Folder(folder.path / elem.a.text))
-            elif elem.get("class")[0] == 'file': folder.files.append(File(folder.path / elem.a.text))
-        print("lol")
-        return folder
-
-
-    async def scrape_disk(self, disk_id):
-        self.disk_id = disk_id
-        pass
-
-    async def download(self, path, recursive=False):
-        pass
+    def get_path(self, path: str = "") -> PurePosixPath:
+        return PurePosixPath(f"{self.get_base_path()}/{path}".replace("//", "/"))
