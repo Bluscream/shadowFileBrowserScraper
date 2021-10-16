@@ -1,0 +1,5 @@
+session_id = ""
+email = ""
+password = ""
+disk_id = ""
+save_path = ""
