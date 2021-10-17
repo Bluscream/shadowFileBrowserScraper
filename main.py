@@ -16,7 +16,7 @@ logger.info(f"{script} START")
 async def main():
     scraper = Scraper(config.session_id)
     if not scraper.get_session_id(): await scraper.login(config.email, config.password)
-    folder = Folder(scraper, scraper.get_path("ProgramData"))  # ProgramData/Animation Labs
+    folder = Folder(scraper, scraper.get_path("/"))  # ProgramData/Animation Labs
     await folder.update_folder_contents(recursive=False)
     for subdir in folder.folders:
         logger.info(f"DIR: {subdir.fullpath}")

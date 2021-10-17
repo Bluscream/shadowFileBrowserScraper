@@ -69,7 +69,7 @@ class File:
         tmpfile = self.local_path()
         logger.info(f"Downloading to: {tmpfile}")
         async with self.scraper.get_session(config.session_id) as session:
-            async with session.get(url) as resp:  # self.scraper.session
+            async with session.get(url, timeout=86400) as resp:  # self.scraper.session
                 if resp.status == 200:
                     self.create()
                     f = await aiofiles.open(str(tmpfile), mode='wb')
@@ -112,6 +112,7 @@ class Folder(File):
         self.folders.clear()
         self.files.clear()
         for elem in html.find_all('li'):
+            if elem.a.text == "Application Data": continue
             elempath = self.fullpath / elem.a.text
             # if elempath in self: continue
             if elem.get("class")[0] == 'directory':
@@ -159,28 +160,36 @@ class Folder(File):
 
     async def download(self) -> None:
         url = self.get_download_url()
-        tmpfile = Path(tempfile.gettempdir()) / f"{self.relative_path_md5()}-{self.fullpath.name[:15]}.zip"
+        if self.local_path().exists(): return
+        tmpfile = self.local_path().parent / f"{self.relative_path_md5()}-{self.fullpath.name[:15]}.zip"
         logger.info(f"Downloading to: {tmpfile}")
         async with self.scraper.get_session(config.session_id) as session:
-            async with session.get(url) as resp:  # self.scraper.session
+            async with session.get(url, timeout=86400) as resp:  # self.scraper.session
                 if resp.status == 200:
                     # async with aiofiles.tempfile.TemporaryFile('wb') as f:
                     #     await f.write(b'Hello, World!')
+                    self.create()
                     f = await aiofiles.open(str(tmpfile), mode='wb')
                     chunk_size = 81920
                     chunk_size_str = naturalsize(chunk_size)
                     while True:
+                        flsz = tmpfile.stat().st_size
                         chunk = await resp.content.read(chunk_size)
                         await asyncio.sleep(0)
                         if not chunk: break
                         await f.write(chunk)
-                        logger.info(
-                            f"wrote chunk of {chunk_size_str} to {tmpfile.name} ({naturalsize(tmpfile.stat().st_size)})")
+                        logger.info(f"wrote chunk of {chunk_size_str} to \"{tmpfile.name}\" ({naturalsize(flsz)} [{flsz}])")
+                        if flsz > 641970376: # 999879829
+                            await self.update_folder_contents()
+                            for subdir in self.folders:
+                                await subdir.download()
+                            await f.close()
+                            tmpfile.unlink()
+                            return
                     # await f.write(await resp.read())
                     await f.close()
             if tmpfile.exists():
                 extract_dir = self.local_path()
-                self.create()
                 logger.info(f"Extracting to: {extract_dir}")
                 unpack_archive(str(tmpfile), extract_dir)
                 tmpfile.unlink()
