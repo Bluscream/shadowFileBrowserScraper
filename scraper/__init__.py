@@ -1,20 +1,22 @@
 from __future__ import annotations
+
 import asyncio
-from pathlib import Path, PosixPath, PurePosixPath
-from yarl import URL
-from aiohttp import ClientSession
 import os.path
+from logging import getLogger, DEBUG
+from pathlib import Path, PurePosixPath
+
+from aiohttp import ClientSession
+from yarl import URL
 
 import config
 from scraper.File import File, Folder
 
-from logging import getLogger, basicConfig, DEBUG
 script = Path(__file__).stem
 logger = getLogger(script)
 logger.setLevel(DEBUG)
 
-class Scraper():
 
+class Scraper():
     session: ClientSession
     base_url = URL("https://filebrowser.ams1.shadow.tech:2447/shadowftp/")
     base_path = "/var/log/filebrowser/userdisks/"

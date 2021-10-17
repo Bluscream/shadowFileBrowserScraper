@@ -1,32 +1,30 @@
 from __future__ import annotations
 
+import asyncio
 import os
+import tempfile
 from copy import copy
 from dataclasses import dataclass
+from hashlib import md5
+from logging import getLogger, DEBUG
+from os import makedirs, path
 from pathlib import PurePosixPath, Path
+from shutil import unpack_archive
 from typing import List
-from urllib.parse import quote_plus, urlencode, quote
+from urllib.parse import quote
 
 import aiofiles as aiofiles
-import asyncio
-
-import humanize
 from bs4 import BeautifulSoup
-from yarl import URL
-from os import makedirs, path
-
-import scraper
-import config
-import tempfile
-from uuid import uuid4
-from hashlib import md5
-from shutil import unpack_archive
 from humanize import naturalsize
+from yarl import URL
 
-from logging import getLogger, basicConfig, DEBUG
+import config
+import scraper
+
 script = Path(__file__).stem
 logger = getLogger(script)
 logger.setLevel(DEBUG)
+
 
 @dataclass
 class File:
@@ -40,7 +38,8 @@ class File:
     def __str__(self):
         return f"File: \"{self.fullpath}\""
 
-    def encoded_path(self) -> str: return quote(str(self.fullpath))
+    def encoded_path(self) -> str:
+        return quote(str(self.fullpath))
 
     def relative_path(self) -> PurePosixPath:
         return PurePosixPath(str(self.fullpath).replace(self.scraper.get_base_path(), ""))
@@ -61,7 +60,7 @@ class File:
 
     def get_download_url(self) -> URL:
         url = self.scraper.base_url / "file"
-        url = url.update_query({'file': self.encoded_path()}) # .replace("%252F", "%2F")
+        url = url.update_query({'file': self.encoded_path()})  # .replace("%252F", "%2F")
         # logger.info(f"Download URL: {url}")
         return url
 
@@ -70,7 +69,7 @@ class File:
         tmpfile = self.local_path()
         logger.info(f"Downloading to: {tmpfile}")
         async with self.scraper.get_session(config.session_id) as session:
-            async with session.get(url) as resp: # self.scraper.session
+            async with session.get(url) as resp:  # self.scraper.session
                 if resp.status == 200:
                     self.create()
                     f = await aiofiles.open(str(tmpfile), mode='wb')
@@ -81,9 +80,11 @@ class File:
                         await asyncio.sleep(0)
                         if not chunk: break
                         await f.write(chunk)
-                        logger.info(f"wrote chunk of {chunk_size_str} to {tmpfile.name} ({naturalsize(tmpfile.stat().st_size)})")
+                        logger.info(
+                            f"wrote chunk of {chunk_size_str} to {tmpfile.name} ({naturalsize(tmpfile.stat().st_size)})")
                     # await f.write(await resp.read())
                     await f.close()
+
 
 @dataclass
 class Folder(File):
@@ -95,7 +96,8 @@ class Folder(File):
         self.folders = []
         self.files = []
 
-    async def update_folder_contents(self, endpoint: str = "dirlist", recursive: bool = False, create: bool = False) -> None:
+    async def update_folder_contents(self, endpoint: str = "dirlist", recursive: bool = False,
+                                     create: bool = False) -> None:
         # print(f"folder.get_folder_contents(\"{self.fullpath}\")")
         response = None
         try:
@@ -115,7 +117,7 @@ class Folder(File):
             if elem.get("class")[0] == 'directory':
                 dir = Folder(self.scraper, elempath)
                 if create: dir.create()
-                if recursive: await dir.update_folder_contents(recursive=recursive,create=create)
+                if recursive: await dir.update_folder_contents(recursive=recursive, create=create)
                 self.folders.append(dir)
             elif elem.get("class")[0] == 'file':
                 file = File(self.scraper, elempath)
@@ -130,8 +132,10 @@ class Folder(File):
             if file.fullpath == fullpath: return True
 
     def __str__(self) -> str:
-        try: return f"Folder: \"{self.fullpath}\" ({len(self.folders)} folders, {len(self.files)} files)"
-        except: return f"Folder: \"{self.fullpath}\""
+        try:
+            return f"Folder: \"{self.fullpath}\" ({len(self.folders)} folders, {len(self.files)} files)"
+        except:
+            return f"Folder: \"{self.fullpath}\""
 
     def tree(self, _depth=1) -> None:
         print("=" * _depth + f"> \"{self.relative_path()}/\"")
@@ -143,7 +147,7 @@ class Folder(File):
 
     def get_download_url(self) -> URL:
         url = self.scraper.base_url / "zip"
-        url = url.update_query({'dir': self.encoded_path()}) # .replace("%252F", "%2F")
+        url = url.update_query({'dir': self.encoded_path()})  # .replace("%252F", "%2F")
         # logger.info(f"Download URL: {url}")
         return url
 
@@ -158,7 +162,7 @@ class Folder(File):
         tmpfile = Path(tempfile.gettempdir()) / f"{self.relative_path_md5()}-{self.fullpath.name[:15]}.zip"
         logger.info(f"Downloading to: {tmpfile}")
         async with self.scraper.get_session(config.session_id) as session:
-            async with session.get(url) as resp: # self.scraper.session
+            async with session.get(url) as resp:  # self.scraper.session
                 if resp.status == 200:
                     # async with aiofiles.tempfile.TemporaryFile('wb') as f:
                     #     await f.write(b'Hello, World!')
@@ -170,7 +174,8 @@ class Folder(File):
                         await asyncio.sleep(0)
                         if not chunk: break
                         await f.write(chunk)
-                        logger.info(f"wrote chunk of {chunk_size_str} to {tmpfile.name} ({naturalsize(tmpfile.stat().st_size)})")
+                        logger.info(
+                            f"wrote chunk of {chunk_size_str} to {tmpfile.name} ({naturalsize(tmpfile.stat().st_size)})")
                     # await f.write(await resp.read())
                     await f.close()
             if tmpfile.exists():

@@ -1,5 +1,5 @@
 from requests import post
-from json import dumps
+
 import config
 
 url = 'https://filebrowser.ams1.shadow.tech:2447/shadowftp/dirlist'
@@ -17,6 +17,7 @@ print(r.text)
 print("AIOHTTP")
 import aiohttp, asyncio
 
+
 async def main():
     async with aiohttp.ClientSession(cookies=cookies) as session:
         async with session.post(url, data=data) as response:
@@ -24,6 +25,7 @@ async def main():
             print("Content-type:", response.headers['content-type'])
             html = await response.text()
             print("Body:", html[:15], "...")
+
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
