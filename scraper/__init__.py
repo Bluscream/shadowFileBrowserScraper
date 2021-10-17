@@ -16,6 +16,9 @@ logger = getLogger(script)
 logger.setLevel(DEBUG)
 
 
+def cls(): os.system('cls' if os.name == 'nt' else 'clear')
+
+
 class Scraper():
     session: ClientSession
     base_url = URL("https://filebrowser.ams1.shadow.tech:2447/shadowftp/")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import shutil
 import tempfile
 from copy import copy
 from dataclasses import dataclass
@@ -170,17 +171,21 @@ class Folder(File):
                     #     await f.write(b'Hello, World!')
                     self.create()
                     f = await aiofiles.open(str(tmpfile), mode='wb')
-                    chunk_size = 81920
-                    chunk_size_str = naturalsize(chunk_size)
+                    c = 0
                     while True:
                         flsz = tmpfile.stat().st_size
-                        chunk = await resp.content.read(chunk_size)
+                        chunk = await resp.content.read(81920)
                         await asyncio.sleep(0)
                         if not chunk: break
                         await f.write(chunk)
-                        logger.info(f"wrote chunk of {chunk_size_str} to \"{tmpfile.name}\" ({naturalsize(flsz)} [{flsz}])")
-                        if flsz > 641970376: # 999879829
-                            await self.update_folder_contents()
+                        # scraper.cls()
+                        c+=1
+                        if c > 10:
+                            logger.info(f"Wrote 10 chunks to \"{tmpfile.name}\" ({naturalsize(flsz)} [{flsz}])")
+                            c = 0
+                        if flsz > 601970376: # 999879829
+                            logger.warning(f"zip is too large, downloading childs instead...")
+                            await self.update_folder_contents() # this
                             for subdir in self.folders:
                                 await subdir.download()
                             await f.close()
@@ -191,5 +196,8 @@ class Folder(File):
             if tmpfile.exists():
                 extract_dir = self.local_path()
                 logger.info(f"Extracting to: {extract_dir}")
-                unpack_archive(str(tmpfile), extract_dir)
+                try: unpack_archive(str(tmpfile), extract_dir)
+                except shutil.ReadError as ex:
+                    logger.error(ex)
+                    self.local_path().rmdir()
                 tmpfile.unlink()
