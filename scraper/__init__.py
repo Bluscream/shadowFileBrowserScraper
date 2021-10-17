@@ -1,20 +1,17 @@
 from __future__ import annotations
 import asyncio
-import dataclasses
 from pathlib import Path, PosixPath, PurePosixPath
-from dataclasses import dataclass
-from typing import List
-from json import dumps
-
-from bs4 import BeautifulSoup
 from yarl import URL
-from urllib.parse import urlencode, quote_plus
-from aiohttp import ClientSession, ClientConnectionError, ClientError
+from aiohttp import ClientSession
 import os.path
 
 import config
 from scraper.File import File, Folder
 
+from logging import getLogger, basicConfig, DEBUG
+script = Path(__file__).stem
+logger = getLogger(script)
+logger.setLevel(DEBUG)
 
 class Scraper():
 
@@ -61,7 +58,7 @@ class Scraper():
         # if not self.get_session_id(): raise AttributeError("Not logged in!")
         url = self.base_url / endpoint
         # print("NEW POST REQUEST to", url)
-        print(endpoint+":", dumps(data["dir"]))
+        # print(endpoint+":", dumps(data["dir"]))
 
         # print("\tHeaders:", dumps(self.session.headers))
 
@@ -78,9 +75,12 @@ class Scraper():
 
     async def login(self, email, password):
         async with await self.post("auth", {"username": email, "password": password}) as response:
-            print("Content-type:", response.headers['content-type'])
             html = await response.text()
-            print("Body:", html[:15], "...")
+            logger.info(html)
+            self.session = self.get_session(html)
+
+    def get_root_folder(self):
+        return Folder(self, self.get_path())
 
     def get_base_path(self) -> str:
         return f"{self.base_path}{config.disk_id}"

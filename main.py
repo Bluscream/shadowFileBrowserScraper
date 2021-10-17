@@ -1,22 +1,30 @@
 import asyncio
-from pathlib import PurePosixPath
-
 import config
 from scraper import Scraper, Folder
+from pathlib import Path as OSPath
 
+from logging import getLogger, basicConfig, DEBUG
+basicConfig(format='[%(asctime)s.%(msecs)03d] %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
+script = OSPath(__file__).stem
+logger = getLogger(script)
+logger.setLevel(DEBUG)
+
+logger.info(f"{script} START")
 
 async def main():
     scraper = Scraper(config.session_id)
-    # if not scraper.get_session_id(): await scraper.login(config.email, config.password)
-    # scraper.download()
-    folder = Folder(scraper, PurePosixPath("/var/log/filebrowser/userdisks"
-                                           "/25ee0b378593bccc8523a69d90a24b2c647ba7c4b3c768f63ff1070872938188"
-                                           "/ProgramData/"))
-    await folder.update_folder_contents(recursive=True)
-    for f in folder.folders:
-        f.get_download_url()
+    if not scraper.get_session_id(): await scraper.login(config.email, config.password)
+    folder = Folder(scraper, scraper.get_path("ProgramData")) # ProgramData/Animation Labs
+    await folder.update_folder_contents(recursive=False)
+    for subdir in folder.folders:
+        logger.info(f"DIR: {subdir.fullpath}")
+        logger.info(f"URL: {subdir.get_download_url()}")
+        await subdir.download()
+    for file in folder.files:
+        logger.info(f"FILE: {file.fullpath}")
+        logger.info(f"URL: {file.get_download_url()}")
+        await file.download()
     # folder.tree()
-    # folders = await scraper.post("dirlist", {"dir": scraper.get_path("")})
 
     # await scraper.session.close()
 
@@ -32,3 +40,5 @@ if __name__ == '__main__':
     except Exception as ex:
         if loop.is_running(): loop.close()
         raise (ex)
+
+logger.info(f"{script} END")
