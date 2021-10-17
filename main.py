@@ -16,16 +16,7 @@ logger.info(f"{script} START")
 async def main():
     scraper = Scraper(config.session_id)
     if not scraper.get_session_id(): await scraper.login(config.email, config.password)
-    folder = Folder(scraper, scraper.get_path("/"))  # ProgramData/Animation Labs
-    await folder.update_folder_contents(recursive=False)
-    for subdir in folder.folders:
-        logger.info(f"DIR: {subdir.fullpath}")
-        logger.info(f"URL: {subdir.get_download_url()}")
-        await subdir.download()
-    for file in folder.files:
-        logger.info(f"FILE: {file.fullpath}")
-        logger.info(f"URL: {file.get_download_url()}")
-        await file.download()
+    await scraper.scrape_disk()
     # folder.tree()
 
     # await scraper.session.close()

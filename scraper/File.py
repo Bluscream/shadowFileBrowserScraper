@@ -114,6 +114,9 @@ class Folder(File):
         self.files.clear()
         for elem in html.find_all('li'):
             if elem.a.text == "Application Data": continue
+            if elem.a.text == "Documents and Settings": continue
+            if elem.a.text == "$Recycle.Bin": continue
+            if elem.a.text.endswith(".sys"): continue
             elempath = self.fullpath / elem.a.text
             # if elempath in self: continue
             if elem.get("class")[0] == 'directory':
@@ -180,8 +183,8 @@ class Folder(File):
                         await f.write(chunk)
                         # scraper.cls()
                         c+=1
-                        if c > 10:
-                            logger.info(f"Wrote 10 chunks to \"{tmpfile.name}\" ({naturalsize(flsz)} [{flsz}])")
+                        if c > 100:
+                            logger.info(f"Wrote 100 chunks to \"{tmpfile.name}\" ({naturalsize(flsz)} [{flsz}])")
                             c = 0
                         if flsz > 601970376: # 999879829
                             logger.warning(f"zip is too large, downloading childs instead...")
