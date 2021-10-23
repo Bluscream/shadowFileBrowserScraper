@@ -23,6 +23,7 @@ script = Path(__file__).stem
 logger = getLogger(script)
 logger.setLevel(DEBUG)
 
+
 @dataclass
 class Folder(File):
     folders: List[Folder]
@@ -126,15 +127,15 @@ class Folder(File):
                             if not chunk: break
                             await f.write(chunk)
                             # scraper.cls()
-                            c+=1
+                            c += 1
                             if c > 100:
                                 logger.info(f"Wrote 100 chunks to \"{tmpfile.name}\" ({naturalsize(flsz)} [{flsz}])")
                                 c = 0
-                            if flsz > max_size_b: # 601970376, 999879829
+                            if flsz > max_size_b:  # 601970376, 999879829
                                 logger.warning(f"zip is too large, downloading childs instead...")
                                 await f.close()
                                 tmpfile.unlink()
-                                await self.update_folder_contents() # this
+                                await self.update_folder_contents()  # this
                                 for subdir in self.folders:
                                     await subdir.download(max_size_b)
                                 return
@@ -148,7 +149,8 @@ class Folder(File):
             if tmpfile.exists():
                 extract_dir = self.local_path()
                 logger.info(f"Extracting to: {extract_dir}")
-                try: unpack_archive(str(tmpfile), extract_dir)
+                try:
+                    unpack_archive(str(tmpfile), extract_dir)
                 except shutil.ReadError as ex:
                     logger.error(ex)
                     self.local_path().rmdir()

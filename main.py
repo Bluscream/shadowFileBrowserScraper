@@ -1,10 +1,9 @@
 import asyncio
-from logging import getLogger, basicConfig, DEBUG, Formatter, FileHandler, StreamHandler
+from logging import getLogger, DEBUG, Formatter, FileHandler, StreamHandler
 from pathlib import Path as OSPath
 
 import config
-from scraper import Scraper, Folder
-
+from scraper import Scraper
 
 logFormatter = Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
 rootLogger = getLogger()

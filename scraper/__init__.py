@@ -2,29 +2,23 @@ from __future__ import annotations
 
 import asyncio
 import datetime
-import json
 import os.path
 import re
-from copy import copy
 from logging import getLogger, DEBUG
 from os import fdopen, remove
 from pathlib import Path, PurePosixPath
-from pickle import dumps
 from shutil import copymode, move
 from tempfile import mkstemp
 from typing import List
 
 import humanize
-from aiohttp import ClientSession, ClientResponse
-from aiohttp.web_response import Response
+from aiohttp import ClientSession
 from humanize import naturalsize
 from yarl import URL
 
 import config
 from scraper.File import File
 from scraper.Folder import Folder
-from fileinput import input
-from sys import stdout
 
 script = Path(__file__).stem
 logger = getLogger(script)
@@ -32,6 +26,7 @@ logger.setLevel(DEBUG)
 
 
 def cls(): os.system('cls' if os.name == 'nt' else 'clear')
+
 
 class Scraper():
     session: ClientSession = ClientSession()
@@ -63,17 +58,17 @@ class Scraper():
         "s_sq": "bladeshadowtechprod%3D%2526c.%2526a.%2526activitymap.%2526page%253Dhttps%25253A%25252F%25252Faccount.shadow.tech%25252Fhome%25252Fapplications%2526link%253DShadow%252520Anwendungen%2526region%253Droot%2526.activitymap%2526.a%2526.c",
     }
 
-    def get_session_id(self, session = None) -> str:
+    def get_session_id(self, session=None) -> str:
         for key, cookie in (session if session else self.session).cookie_jar.filter_cookies('/').items():
             if key == "beaker.session.id": return cookie.value
 
-    def __init__(self, session_id:str="") -> None:
+    def __init__(self, session_id: str = "") -> None:
         # config.save_path = eval('f' + repr(config.save_path))
         self.session = self.get_session(session_id)
         os.makedirs(config.save_path, exist_ok=True)
         logger.info(f"Created Scraper for {session_id}")
 
-    def get_session(self, session_id:str="", filepath="config.py") -> ClientSession:
+    def get_session(self, session_id: str = "", filepath="config.py") -> ClientSession:
         session = self.session
         if session_id and session_id != "":
             if config.session_id != session_id:
@@ -83,19 +78,20 @@ class Scraper():
                         for line in file0:
                             if line.startswith("session_id"):
                                 file1.writelines([f"session_id = \"{session_id}\" # updated {datetime.datetime.now()}"])
-                            else: file1.write(line)
+                            else:
+                                file1.write(line)
                 copymode(filepath, abspath)
                 remove(filepath)
                 move(abspath, filepath)
             config.session_id = session_id
             session = ClientSession(cookies={"beaker.session.id": session_id})
-            logger.info(f"Created new Session with beaker id: {self.get_session_id(session)}")
+            # logger.info(f"Created new Session with beaker id: {self.get_session_id(session)}")
         else:
             session = ClientSession()
             logger.info(f"Created new empty Session")
         return session
 
-    async def post(self, endpoint:str, data:dict=None, _json:dict=None, headers:dict=None) -> str:
+    async def post(self, endpoint: str, data: dict = None, _json: dict = None, headers: dict = None) -> str:
         # if not self.get_session_id(): raise AttributeError("Not logged in!")
         url = self.base_url / endpoint
         logger.info(f"NEW POST REQUEST to {url}")
@@ -166,13 +162,14 @@ class Scraper():
             await file.download(skip_existing=True)
         return folder
 
-    def clean_cache(self, root:Folder=None, regex:re.Pattern=r"\w{32}-(?:.*){1,15}\.zip") -> None:
+    def clean_cache(self, root: Folder = None, regex: re.Pattern = r"\w{32}-(?:.*){1,15}\.zip") -> None:
         if not root: root = self.get_root_folder().local_path()
         logger.info(f"Cleaning {root} from files matching {regex}")
-        freed_bytes = 0; free_files = 0
+        freed_bytes = 0;
+        free_files = 0
         for root, subdirs, files in os.walk(root):
             for filename in files:
-                if re.match(regex, filename): # filename.endswith(".zip"):
+                if re.match(regex, filename):  # filename.endswith(".zip"):
                     f = os.path.join(root, filename)
                     try:
                         free_files += 1
