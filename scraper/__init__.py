@@ -40,6 +40,7 @@ class Scraper():
         "cache-control": "no-cache",
         # "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
         # "content-length": "126",
+        "connection": "keep-alive",
         "pragma": "no-cache",
         "sec-ch-ua": "\"Chromium\";v=\"94\", \"Google Chrome\";v=\"94\", \";Not A Brand\";v=\"99\"",
         "sec-ch-ua-mobile": "?0",

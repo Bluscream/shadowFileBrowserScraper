@@ -60,10 +60,10 @@ class Folder(File):
             if txt.endswith(".sys"):
                 logger.warning(f"DIR IGNORE: \"{elem.a.text}\".endswith('.sys')")
                 continue
-            if elem.a.text == self.fullpath.name:
-                logger.warning(f"DIR IGNORE: \"{elem.a.text}\" == \"{self.fullpath.name}\" (PROBABLY RECURSIVE LOOP)")
-                continue
             elempath = self.fullpath / elem.a.text
+            if elem.a.text == self.fullpath.name == self.fullpath.parent.name:
+                logger.warning(f"DIR IGNORE: \"{elempath}\" (PROBABLY RECURSIVE LOOP)")
+                continue
             # if elempath in self: continue
             if elem.get("class")[0] == 'directory':
                 dir = Folder(self.scraper, elempath)
