@@ -47,9 +47,10 @@ if __name__ == '__main__':
     except Exception as ex:
         if loop.is_running(): loop.close()
         errors.append(str(ex))
-        i = 0;l = len(errors)
-        for error in errors:
-            i += 1
-            logger.error(f"Error #{i}/{l}: {error}")
+
+i = 0;l = len(errors)
+for error in errors:
+    i += 1
+    logger.error(f"Error #{i}/{l}: {error}")
 
 logger.info(f"{script} END")
