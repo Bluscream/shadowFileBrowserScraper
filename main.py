@@ -1,11 +1,21 @@
 import asyncio
-from logging import getLogger, basicConfig, DEBUG
+from logging import getLogger, basicConfig, DEBUG, Formatter, FileHandler, StreamHandler
 from pathlib import Path as OSPath
 
 import config
 from scraper import Scraper, Folder
 
-basicConfig(format='[%(asctime)s.%(msecs)03d] %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
+
+logFormatter = Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+rootLogger = getLogger()
+fileHandler = FileHandler("{0}/{1}.log".format("logs", "main.log"))
+fileHandler.setFormatter(logFormatter)
+rootLogger.addHandler(fileHandler)
+consoleHandler = StreamHandler()
+consoleHandler.setFormatter(logFormatter)
+rootLogger.addHandler(consoleHandler)
+
+# basicConfig(filename="main.log", format='[%(asctime)s.%(msecs)03d] %(message)s', datefmt='%m/%d/%Y %H:%M:%S') # filemode='a',
 script = OSPath(__file__).stem
 logger = getLogger(script)
 logger.setLevel(DEBUG)
@@ -16,8 +26,10 @@ logger.info(f"{script} START")
 async def main():
     scraper = Scraper(config.session_id)
     if not scraper.get_session_id(): await scraper.login(config.email, config.password)
-    await scraper.scrape_disk()
-    # folder.tree()
+    # scraper.clean_cache()
+    folder = await scraper.scrape_dir("Users/Shadow", max_size_mb=50)
+    # await scraper.scrape_disk()
+    folder.tree()
 
     # await scraper.session.close()
 
