@@ -23,6 +23,7 @@ script = Path(__file__).stem
 logger = getLogger(script)
 logger.setLevel(DEBUG)
 
+global errors
 
 @dataclass
 class Folder(File):
@@ -42,6 +43,7 @@ class Folder(File):
             response = await self.scraper.post(endpoint, data={"dir": str(self.fullpath)}, headers=self.scraper.headers)
         except Exception as ex:
             logger.error(ex)
+            errors.append(str(ex))
         xml = copy(response)
         if xml is None: return
         html = BeautifulSoup(xml, 'html.parser')
@@ -144,6 +146,7 @@ class Folder(File):
                         logger.error(f"Failed to download {url}: ({ex}), skipping...")
                         await f.close()
                         tmpfile.unlink()
+                        errors.append(str(ex))
                         pass
                     # await f.write(await resp.read())
                     await f.close()
@@ -155,4 +158,5 @@ class Folder(File):
                 except shutil.ReadError as ex:
                     logger.error(ex)
                     self.local_path().rmdir()
+                    errors.append(str(ex))
                 tmpfile.unlink()

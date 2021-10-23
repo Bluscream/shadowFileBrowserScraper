@@ -24,6 +24,7 @@ script = Path(__file__).stem
 logger = getLogger(script)
 logger.setLevel(DEBUG)
 
+global errors
 
 def cls(): os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -180,4 +181,5 @@ class Scraper():
                         freed_bytes += s
                     except Exception as ex:
                         logger.warning(f"Failed to delete \"{f}\"!")
+                        errors.append(str(ex))
         logger.info(f"Deleted {free_files} incomplete downloads (Total Size: {humanize.naturalsize(freed_bytes)})")

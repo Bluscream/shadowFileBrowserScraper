@@ -1,10 +1,13 @@
 import asyncio
 from logging import getLogger, DEBUG, Formatter, FileHandler, StreamHandler
 from pathlib import Path as OSPath
+from typing import List
 
 import config
 from scraper import Scraper
 
+global errors
+errors: List[str] = list()
 logFormatter = Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
 rootLogger = getLogger()
 fileHandler = FileHandler("{0}/{1}.log".format("logs", "main.log"))
@@ -43,6 +46,10 @@ if __name__ == '__main__':
         loop.close()
     except Exception as ex:
         if loop.is_running(): loop.close()
-        raise (ex)
+        errors.append(str(ex))
+        i = 0;l = len(errors)
+        for error in errors:
+            i += 1
+            logger.error(f"Error #{i}/{l}: {error}")
 
 logger.info(f"{script} END")
