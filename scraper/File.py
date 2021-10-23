@@ -29,6 +29,7 @@ class File:
     def __init__(self, scraper, fullpath: PurePosixPath):
         self.scraper = scraper
         self.fullpath = fullpath
+        logger.info(self)
 
     def __str__(self):
         return f"File: \"{self.fullpath}\""
@@ -43,7 +44,9 @@ class File:
         return md5(str(self.relative_path()).encode('utf-8')).hexdigest()
 
     def local_path(self) -> Path:
-        return Path(config.save_path + str(self.relative_path()))
+        p2 = str(self.relative_path())
+        if p2.startswith("/"): p2 = p2[1:]
+        return config.save_path / p2
 
     def create(self) -> None:
         local_path = self.local_path()

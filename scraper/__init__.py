@@ -24,7 +24,7 @@ script = Path(__file__).stem
 logger = getLogger(script)
 logger.setLevel(DEBUG)
 
-global errors
+from errors import errors
 
 def cls(): os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -67,7 +67,7 @@ class Scraper():
         # config.save_path = eval('f' + repr(config.save_path))
         config.ignored_dir_names = [x.lower() for x in config.ignored_dir_names]
         self.session = self.get_session(session_id)
-        os.makedirs(config.save_path, exist_ok=True)
+        os.makedirs(str(config.save_path), exist_ok=True)
         logger.info(f"Created Scraper for {session_id}")
 
     def get_session(self, session_id: str = "", filepath="config.py") -> ClientSession:
@@ -79,7 +79,7 @@ class Scraper():
                     with open(filepath, 'r') as file0:
                         for line in file0:
                             if line.startswith("session_id"):
-                                file1.writelines([f"session_id = \"{session_id}\" # updated {datetime.datetime.now()}"])
+                                file1.write(f"session_id = \"{session_id}\" # updated {datetime.datetime.now()}".strip()+"\n")
                             else:
                                 file1.write(line)
                 copymode(filepath, abspath)
@@ -149,22 +149,10 @@ class Scraper():
         for folder in folders: await self.scrape_dir(str(folder))
         return folders
 
-    async def scrape_dir(self, path: str, max_size_mb: int = 999) -> Folder:
-        max_size = max_size_mb * 1048576
-        folder = Folder(self, self.get_path(path))
-        logger.info(f"Scraping Directory: \"{folder}\" (Max Size: {naturalsize(max_size)})")
-        await folder.update_folder_contents(recursive=False)
-        for subdir in folder.folders:
-            logger.info(f"DIR: {subdir.fullpath}")
-            logger.info(f"URL: {subdir.get_download_url()}")
-            await subdir.download(max_size, skip_not_empty=True)
-        for file in folder.files:
-            logger.info(f"FILE: {file.fullpath}")
-            logger.info(f"URL: {file.get_download_url()}")
-            await file.download(skip_existing=True)
-        return folder
+    async def scrape_dir(self, path: str, max_size_mb: int = 999, skip_not_empty: bool = True, skip_existing: bool = True) -> Folder:
+        return await Folder(self, self.get_path(path)).scrape(max_size_mb, skip_not_empty, skip_existing)
 
-    def clean_cache(self, root: Folder = None, regex: re.Pattern = r"\w{32}-(?:.*){1,15}\.zip") -> None:
+    def clean_cache(self, root: Path = None, regex: re.Pattern = r"\w{32}-(?:.*){1,15}\.zip") -> None:
         if not root: root = self.get_root_folder().local_path()
         logger.info(f"Cleaning {root} from files matching {regex}")
         freed_bytes = 0;

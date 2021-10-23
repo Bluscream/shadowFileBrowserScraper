@@ -23,7 +23,8 @@ script = Path(__file__).stem
 logger = getLogger(script)
 logger.setLevel(DEBUG)
 
-global errors
+
+from errors import errors
 
 @dataclass
 class Folder(File):
@@ -101,11 +102,22 @@ class Folder(File):
         # logger.info(f"Download URL: {url}")
         return url
 
-    def create(self) -> None:
+    def create(self) -> Path:
         path = self.local_path()
         if not path.exists():
             makedirs(path, exist_ok=True)
             logger.info(f"created dir {path}")
+        return path
+
+    async def scrape(self, max_size_mb: int = 999, skip_not_empty: bool = True, skip_existing: bool = True) -> Folder:
+        max_size = max_size_mb * 1048576
+        logger.info(f"Scraping Directory: \"{self.fullpath}\" (Max Size: {naturalsize(max_size)})")
+        await self.update_folder_contents(recursive=False)
+        for subdir in self.folders:
+            await subdir.download(max_size, skip_not_empty=skip_not_empty)
+        for file in self.files:
+            await file.download(skip_existing=skip_existing)
+        return self
 
     async def download(self, max_size_b: int = None, skip_not_empty: bool = False) -> None:
         url = self.get_download_url()
