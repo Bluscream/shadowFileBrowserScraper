@@ -64,6 +64,7 @@ class Scraper():
 
     def __init__(self, session_id: str = "") -> None:
         # config.save_path = eval('f' + repr(config.save_path))
+        config.ignored_dir_names = [x.lower() for x in config.ignored_dir_names]
         self.session = self.get_session(session_id)
         os.makedirs(config.save_path, exist_ok=True)
         logger.info(f"Created Scraper for {session_id}")

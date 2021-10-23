@@ -50,10 +50,11 @@ class Folder(File):
         self.folders.clear()
         self.files.clear()
         for elem in html.find_all('li'):
-            if elem.a.text in config.ignored_dir_names:
+            txt = elem.a.text.strip().lower()
+            if txt in config.ignored_dir_names:
                 logger.warning(f"DIR IGNORE: \"{elem.a.text}\" in config.ignored_dir_names")
                 continue
-            if elem.a.text.endswith(".sys"):
+            if txt.endswith(".sys"):
                 logger.warning(f"DIR IGNORE: \"{elem.a.text}\".endswith('.sys')")
                 continue
             if elem.a.text == self.fullpath.name:
