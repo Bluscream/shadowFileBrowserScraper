@@ -1,3 +1,2 @@
-venv\Scripts\python.exe main.py "C:\\Users\\Shadow\\Appdata" --clean-cache -r -u -t -s --max-size 50 --backup-dir "S:\\Backups\\Shadow\\"
-REM
+venv\Scripts\python.exe main.py "Program Files" --clean-cache -u -t -s --max-size 50 --backup-dir "S:\\Backups\\Shadow" -l
 pause

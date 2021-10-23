@@ -47,6 +47,7 @@ async def main(args: Namespace, running=None):
     if args.clean_cache: scraper.clean_cache(local_path)
     if args.update: await folder.update_folder_contents(recursive=args.recursive, create=args.create)
     if args.scrape: await folder.scrape(args.max_size, args.skip_not_empty_dirs, args.skip_existing_files)
+    if args.scrape_disk: await scraper.scrape_disk(args.max_size, args.skip_not_empty_dirs, args.skip_existing_files)
     if args.download: await folder.download(args.skip_not_empty_dirs)
     # await scraper.scrape_disk()
     if args.tree: folder.tree()
@@ -57,6 +58,7 @@ async def main(args: Namespace, running=None):
 if __name__ == '__main__':
     parser = ArgumentParser(description='Shadow File Browser Scraper')
     parser.add_argument('path', type=PurePosixPath, help='The path to scrape')
+    parser.add_argument('-sd', '--scrape-disk', type=bool, help='Wether to scrape the full disk', default=False, action=BooleanOptionalAction)
     parser.add_argument('-s', '--scrape', type=bool, help='Wether to scrape the path', default=False, action=BooleanOptionalAction)
     parser.add_argument('-d', '--download', type=bool, help='Wether to download the path', default=False, action=BooleanOptionalAction)
     parser.add_argument('-t', '--tree', type=bool, help='Wether to print a tree of the path', default=False, action=BooleanOptionalAction)

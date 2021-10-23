@@ -34,9 +34,9 @@ class Scraper():
     base_url = URL("https://filebrowser.ams1.shadow.tech:2447/shadowftp/")
     base_path = "/var/log/filebrowser/userdisks/"
     headers = {
-        "accept": "*/*",
-        "accept-language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
+        # "accept": "*/*",
+        # "accept-language": "en-US,en;q=0.9",
+        # "Accept-Encoding": "gzip, deflate", # , br
         "cache-control": "no-cache",
         # "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
         # "content-length": "126",
@@ -140,13 +140,14 @@ class Scraper():
     def get_path(self, path: str = "") -> PurePosixPath:
         return PurePosixPath(f"{self.get_base_path()}/{path}".replace("//", "/"))
 
-    async def scrape_disk(self) -> List[Folder]:
+    async def scrape_disk(self, max_size_mb: int = 999, skip_not_empty: bool = True, skip_existing: bool = True) -> List[Folder]:
         folders = [
             Folder(self, self.get_path("Program Files")),
             Folder(self, self.get_path("Program Files (x86)")),
             Folder(self, self.get_path("Users"))
         ]
-        for folder in folders: await self.scrape_dir(str(folder))
+        for folder in folders:
+            await folder.scrape(max_size_mb, skip_not_empty, skip_existing)
         return folders
 
     async def scrape_dir(self, path: str, max_size_mb: int = 999, skip_not_empty: bool = True, skip_existing: bool = True) -> Folder:
@@ -154,8 +155,8 @@ class Scraper():
 
     def clean_cache(self, root: Path = None, regex: re.Pattern = r"\w{32}-(?:.*){1,15}\.zip") -> None:
         if not root: root = self.get_root_folder().local_path()
-        logger.info(f"Cleaning {root} from files matching {regex}")
-        freed_bytes = 0;
+        logger.info(f"Cleaning \"{root}\" from files matching \"{regex}\"")
+        freed_bytes = 0
         free_files = 0
         for root, subdirs, files in os.walk(root):
             for filename in files:
