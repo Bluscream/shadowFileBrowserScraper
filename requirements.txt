@@ -1,5 +1,5 @@
 asyncio~=3.4.3
-yarl~=1.7.0
+yarl~=1.8.2
 aiohttp~=3.7.4.post0
 setuptools~=58.2.0
 requests~=2.26.0
