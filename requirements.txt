@@ -4,5 +4,5 @@ aiohttp~=3.8.3
 setuptools~=67.1.0
 requests~=2.28.1
 aiofiles~=23.2.1
-beautifulsoup4~=4.10.0
+beautifulsoup4~=4.12.3
 humanize~=4.6.0
